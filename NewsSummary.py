@@ -65,8 +65,8 @@ def scrape_derana_news():
 
 
 # Generate AI Summary using Groq LLM
-def generate_summary(news_title):
-    prompt = f"Summarize this news in 2 sentences: {news_title}"
+def generate_summary(news_title, language="en"):
+    prompt = f"Summarize this news in 3 sentences in {language}: {news_title}"
 
     response = groq_client.chat.completions.create(
         model="mixtral-8x7b-32768",
@@ -76,20 +76,32 @@ def generate_summary(news_title):
     return response.choices[0].message.content
 
 
-# Combine News & Generate Summaries
-def get_news_with_summaries():
-    news_list = scrape_hiru_news() + scrape_derana_news()
+# Goal-Based News Selection & Filtering
+def get_filtered_news():
+    news_list =scrape_derana_news()+scrape_hiru_news()+scrape_hiru_news()
 
+    filtered_news = []
     for news in news_list:
-        news["summary"] = generate_summary(news["title"])
+        summary_en = generate_summary(news["title"], "English")
+        summary_si = generate_summary(news["title"], "Sinhala")
+        summary_ta = generate_summary(news["title"], "Tamil")
+# Goal: Filter only relevant and high-priority news
+        if "අට" not in summary_si and "நாட்கள்" not in summary_ta:  # Example filtering condition
+            filtered_news.append({
+                "source": news["source"],
+                "title": news["title"],
+                "summary_en": summary_en,
+                "summary_si": summary_si,
+                "summary_ta": summary_ta,
+                "link": news["link"]
+            })
 
-    return news_list
-
-
+    return filtered_news
 
 # Fetch News & Print Summaries
-news_articles = get_news_with_summaries()
+news_articles =  get_filtered_news()
 for news in news_articles:
     print(f"\n📌 {news['source']}: {news['title']}")
-    print(f"🔹 Summary: {news['summary']}")
+    print(f"🔹 🇬🇧 English: {news['summary_en']}")
+    print(f"🔹 🇱🇰 Sinhala: {news['summary_si']}")
     print(f"🔗 Read more: {news['link']}")
